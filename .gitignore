@@ -5,10 +5,6 @@ __pycache__/
 *.pyd
 *.pkl
 
-# Jupyter Notebook
-.ipynb_checkpoints
-*.ipynb
-
 # Virtual Environments
 env/
 venv/
