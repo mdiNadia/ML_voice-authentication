@@ -1,0 +1,52 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pkl
+
+# Jupyter Notebook
+.ipynb_checkpoints
+*.ipynb
+
+# Virtual Environments
+env/
+venv/
+ENV/
+.venv/
+ENV.bak/
+
+# Data files
+*.csv
+*.h5
+*.hdf5
+*.data
+*.dat
+*.mp3
+
+# Model files
+*.model
+*.pkl
+*.ckpt
+
+# Logs
+*.log
+logs/
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Notebooks with outputs
+*.output
+
+# Compiled files
+*.o
+*.so
+
+# Hidden files
+.*.swp
+.*.swo
+
+Data/raw
+Data/processed
