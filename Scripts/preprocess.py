@@ -1,83 +1,52 @@
-#حذف نویز با روش spectral_subtraction و کتابخانه  librosa
-import librosa
-import numpy as np
-import librosa.display
 import os
 import glob
-import matplotlib.pyplot as plt
-import soundfile as sf  # برای ذخیره فایل
-
-def spectral_subtraction(input_file, output_file, noise_duration=1.0, sr=16000):
-    # 1. بارگذاری فایل صوتی
-    audio, sr = librosa.load(input_file, sr=sr)
-
-    # 2. استخراج نمونه‌های نویز (Noise Profile)
-    noise_samples = int(noise_duration * sr)  # نویز اول فایل (مثلاً 1 ثانیه)
-    noise_audio = audio[:noise_samples]
-    
-    # 3. محاسبه Short-Time Fourier Transform (STFT)
-    audio_stft = librosa.stft(audio, n_fft=1024, hop_length=512)
-    noise_stft = librosa.stft(noise_audio, n_fft=1024, hop_length=512)
-    
-    # 4. محاسبه قدرت (Magnitude) و میانگین طیف نویز
-    noise_magnitude = np.mean(np.abs(noise_stft), axis=1)  # میانگین طیف نویز
-    
-    # 5. کم کردن طیف نویز از طیف اصلی
-    audio_magnitude = np.abs(audio_stft)
-    clean_magnitude = np.maximum(audio_magnitude - noise_magnitude[:, np.newaxis], 0)  # جلوگیری از مقادیر منفی
-    
-    # حفظ فاز اصلی
-    phase = np.angle(audio_stft)
-    clean_stft = clean_magnitude * np.exp(1j * phase)
-    
-    # 6. تبدیل دوباره به دامنه زمانی
-    clean_audio = librosa.istft(clean_stft, hop_length=512)
-    
-    # 7. ذخیره فایل خروجی با استفاده از کتابخانه soundfile
-    sf.write(output_file, clean_audio, sr)
-    
-    # 8. نمایش سیگنال اصلی و تمیز شده
-    plt.figure(figsize=(12, 6))
-    plt.subplot(2, 1, 1)
-    librosa.display.waveshow(audio, sr=sr, alpha=0.5)
-    plt.title("Original Audio")
-    
-    plt.subplot(2, 1, 2)
-    librosa.display.waveshow(clean_audio, sr=sr, alpha=0.5, color='orange')
-    plt.title("Denoised Audio")
-    plt.tight_layout()
-    plt.show()
-
-def process_directory(input_directory , output_directory , noise_duration=1.0, sr=16000):
-    # 1. گرفتن تمام فایل‌های صوتی در پوشه ورودی
-    audio_files = glob.glob(os.path.join(input_directory, "*.mp3"))
-    
-    for audio_file in audio_files:
-        # 2. ایجاد نام فایل خروجی
-        output_file = os.path.join(output_directory, os.path.basename(audio_file))
-        
-        # 3. اعمال حذف نویز
-        spectral_subtraction(audio_file, output_file, noise_duration, sr)
-        print(f"Processed: {audio_file} -> {output_file}")
+import numpy as np
+import soundfile as sf
+import librosa
+from scipy import signal
+from pyloudnorm import Meter, normalize
 
 # مشخص کردن پوشه ورودی و خروجی
-input_directory = './Data/raw'  # مسیر پوشه فایل‌های صوتی ورودی
-output_directory = './Data/processed' # مسیر پوشه برای ذخیره فایل‌های خروجی
+input_directory = './Data/raw'
+output_directory = './Data/processed'
 
-# اطمینان از وجود پوشه‌های خروجی
-if not os.path.exists(output_directory):
-    os.makedirs(output_directory)
+# طراحی فیلتر باندپاس
+def bandpass_filter(audio, sr, lowcut, highcut, order=5):
+    nyquist = 0.5 * sr
+    low = lowcut / nyquist
+    high = highcut / nyquist
+    b, a = signal.butter(order, [low, high], btype='bandpass')
+    return signal.filtfilt(b, a, audio)
 
-# پردازش تمام فایل‌ها
+# حذف سکوت از صوت
+def remove_silence(audio_data, sr, threshold=0.1, frame_length=2048, hop_length=512):
+    rms = librosa.feature.rms(y=audio_data, frame_length=frame_length, hop_length=hop_length)[0]
+    frames = np.where(rms > threshold)[0]
+    return np.concatenate([audio_data[i * hop_length:(i + 1) * hop_length] for i in frames])
+
+# نرمال‌سازی صوت
+def normalize_audio(audio_data, sr, target_lufs=-14):
+    meter = Meter(sr)
+    loudness = meter.integrated_loudness(audio_data)
+    return normalize.loudness(audio_data, loudness, target_lufs)
+
+# پردازش یک فایل
+def process_file(input_file, output_file, lowcut=50.0, highcut=5000.0, sr=22050):
+    audio, sr = librosa.load(input_file, sr=sr)
+    filtered_audio = bandpass_filter(audio, sr, lowcut, highcut)
+    non_silent_audio = remove_silence(filtered_audio, sr, threshold=0.05)
+    normalized_audio = normalize_audio(non_silent_audio, sr, target_lufs=-14)
+    sf.write(output_file, normalized_audio, sr)
+    print(f"Processed: {input_file} -> {output_file}")
+
+# پردازش فایل‌های پوشه
+def process_directory(input_directory, output_directory, lowcut=50.0, highcut=5000.0, sr=22050):
+    audio_files = glob.glob(os.path.join(input_directory, "*.mp3")) + glob.glob(os.path.join(input_directory, "*.wav"))
+    if not os.path.exists(output_directory):
+        os.makedirs(output_directory)
+    for audio_file in audio_files:
+        output_file = os.path.join(output_directory, os.path.basename(audio_file))
+        process_file(audio_file, output_file, lowcut, highcut, sr)
+
+# اجرا
 process_directory(input_directory, output_directory)
-
-#End of denoise_audio
-def resample_audio(audio, original_sr, target_sr=16000):
-    return ""
-
-def normalize_audio(audio):
-    return ""
-
-def Windowing_audio(input_file, target_sr=16000):
-    return ""
-
