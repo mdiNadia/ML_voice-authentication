@@ -1,13 +1,4 @@
-#Spectral Contrast
-# یک ویژگی صوتی پرکاربرد در پردازش گفتار و موسیقی است که 
-# تفاوت بین پیک‌های فرکانسی 
-# (high energy) و
-# فرکانس‌های پایین‌تر 
-# (low energy)
-# را اندازه‌گیری می‌کند
-
 import librosa
-import librosa.display
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -26,13 +17,11 @@ def extract_spectral_contrast(file_path, sr=22050, n_bands=6):
         # 🔹 2. پردازش اولیه (نرمال‌سازی)
         y = librosa.util.normalize(y)
 
-        # 🔹 3. محاسبه STFT (تبدیل فوریه کوتاه-مدت)
+        # 🔹 3. محاسبه Spectral Contrast
         stft = np.abs(librosa.stft(y, n_fft=1024, hop_length=512))
-
-        # 🔹 4. محاسبه Spectral Contrast
         spectral_contrast = librosa.feature.spectral_contrast(S=stft, sr=sr, n_bands=n_bands)
 
-        return spectral_contrast
+        return np.mean(spectral_contrast, axis=1)  # میانگین هر باند فرکانسی
     except Exception as e:
         print(f"❌ خطا در پردازش {file_path}: {e}")
         return None
@@ -45,21 +34,20 @@ for file in audio_files:
     file_path = os.path.join(audio_folder, file)
 
     # استخراج Spectral Contrast
-    spectral_contrast = extract_spectral_contrast(file_path)
-    if spectral_contrast is not None:
-        # استخراج شماره دانشجویی از نام فایل
+    spectral_contrast_features = extract_spectral_contrast(file_path)
+    if spectral_contrast_features is not None:
+        # استخراج اطلاعات از نام فایل
         parts = file.split('_')
-        student_id = parts[2]  # شماره دانشجویی
-        gender = parts[3].split('.')[0]  # جنسیت (male/female)
-        # محاسبه میانگین ویژگی‌ها
-        contrast_features = np.mean(spectral_contrast, axis=1)  # میانگین‌گیری در طول زمان
+        if len(parts) >= 4:
+            student_id = parts[2]  # شماره دانشجویی
+            gender = parts[3].split('.')[0]  # جنسیت (male/female)
 
-        # ذخیره اطلاعات در لیست
-        feature_dict = {"filename": file, "student_id": student_id}
-        for i in range(len(contrast_features)):
-            feature_dict[f'contrast_{i+1}'] = contrast_features[i]
+            # ذخیره اطلاعات در لیست
+            feature_dict = {"filename": file, "student_id": student_id, "gender": gender}
+            for i in range(len(spectral_contrast_features)):
+                feature_dict[f'spectral_contrast_{i+1}'] = spectral_contrast_features[i]
 
-        data.append(feature_dict)
+            data.append(feature_dict)
 
 # 📊 تبدیل داده‌ها به DataFrame
 df = pd.DataFrame(data)
@@ -69,12 +57,20 @@ df.to_csv(output_csv, index=False)
 print(f"✅ ویژگی‌های Spectral Contrast در '{output_csv}' ذخیره شد.")
 
 
+
+# 📂 انتخاب یک فایل برای رسم نمودار
 file_path = "Data/processed/HW1_intro_610300032_male_segment_1.wav"
-spectral_contrast = extract_spectral_contrast(file_path)
+
+# استخراج ویژگی‌ها
+y, sr = librosa.load(file_path, sr=22050)
+stft = np.abs(librosa.stft(y, n_fft=1024, hop_length=512))
+spectral_contrast = librosa.feature.spectral_contrast(S=stft, sr=sr, n_bands=6)
+
+# رسم Spectral Contrast
 plt.figure(figsize=(10, 5))
-librosa.display.specshow(spectral_contrast, x_axis='time', sr=22050, cmap='coolwarm')
-plt.colorbar(label="Contrast")
-plt.title("Spectral Contrast")
+librosa.display.specshow(spectral_contrast, x_axis='time', sr=sr, cmap='coolwarm')
+plt.colorbar(label="Spectral Contrast")
+plt.title("Spectral Contrast over Time")
 plt.xlabel("Time")
 plt.ylabel("Frequency Bands")
 plt.show()

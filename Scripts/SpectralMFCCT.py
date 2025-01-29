@@ -71,18 +71,15 @@ print(f"✅ ویژگی‌های MFCC در فایل '{output_csv}' ذخیره ش�
 
 
 file_path = "Data/processed/HW1_intro_610300032_male_segment_1.wav"
-mfcc = extract_mfcc(file_path)
+y, sr = librosa.load(file_path, sr=22050)
+mfcc = librosa.feature.mfcc(y=y, sr=sr, n_mfcc=13)
 
-# Check if MFCC is not None and has valid shape
-if mfcc is not None and mfcc.shape[1] > 0:
-    # Plot the MFCC
-    plt.figure(figsize=(10, 4))
-    librosa.display.specshow(mfcc, x_axis="time", sr=22050)
-    plt.colorbar(label="MFCC")
-    plt.title("Mel Frequency Cepstral Coefficients")
-    plt.xlabel("Time")
-    plt.ylabel("MFCC Coefficients")
-    plt.show()
-else:
-    print("MFCC extraction failed or has invalid shape.")
+# رسم نمودار MFCC
+plt.figure(figsize=(10, 4))
+librosa.display.specshow(mfcc, x_axis="time", sr=sr, cmap="coolwarm")
+plt.colorbar(label="MFCC")
+plt.title("Mel Frequency Cepstral Coefficients")
+plt.xlabel("Time")
+plt.ylabel("MFCC Coefficients")
+plt.show()
 
