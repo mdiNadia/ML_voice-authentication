@@ -15,9 +15,16 @@ y = features_df['gender']  # استفاده از جنسیت برای خوشه‌
 scaler = MinMaxScaler()
 X_scaled = scaler.fit_transform(X)
 
-# کاهش ابعاد به ۳ بعد
+# کاهش ابعاد به ۳ بعد با UMAP
 umap_3d = umap.UMAP(n_components=3, n_neighbors=15, min_dist=0.1, metric='euclidean', random_state=42)
 X_umap_3d = umap_3d.fit_transform(X_scaled)
+
+# تبدیل به DataFrame برای ذخیره‌سازی
+umap_df_3d = pd.DataFrame(X_umap_3d, columns=['UMAP Component 1', 'UMAP Component 2', 'UMAP Component 3'])
+umap_df_3d['gender'] = y  # اضافه کردن جنسیت به DataFrame برای مرجع
+
+# ذخیره در فایل CSV
+umap_df_3d.to_csv("Data/features/classification/UMAP_reduced_features_3D.csv", index=False)
 
 # نمایش در فضای سه‌بعدی
 fig = plt.figure(figsize=(10, 7))

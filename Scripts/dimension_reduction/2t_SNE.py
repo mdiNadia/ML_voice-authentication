@@ -18,6 +18,13 @@ X_scaled = scaler.fit_transform(X)
 tsne = TSNE(n_components=2, perplexity=30, random_state=42)
 X_tsne = tsne.fit_transform(X_scaled)
 
+# تبدیل به DataFrame برای ذخیره‌سازی
+tsne_df = pd.DataFrame(X_tsne, columns=['t-SNE Component 1', 't-SNE Component 2'])
+tsne_df['gender'] = y  # اضافه کردن جنسیت به DataFrame برای مرجع
+
+# ذخیره در فایل CSV
+tsne_df.to_csv("Data/features/classification/t-SNE_reduced_features.csv", index=False)
+
 # نمایش در فضای دو بعدی
 plt.figure(figsize=(8, 6))
 plt.scatter(X_tsne[:, 0], X_tsne[:, 1], c=y.astype('category').cat.codes, cmap='viridis', alpha=0.7)
